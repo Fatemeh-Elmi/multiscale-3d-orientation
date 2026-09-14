@@ -1,7 +1,6 @@
 # Final Python code for the multiscale 3-D orientation manuscript
 
-This package is the clean, standalone implementation matching the final manuscript workflow.
-It does **not** depend on the older dermal-morphometry code.
+This repository provides a clean, standalone implementation of the multiscale 3D orientation and reliability analysis framework
 
 ## What is implemented
 
@@ -15,8 +14,8 @@ It does **not** depend on the older dermal-morphometry code.
 - cross-scale stability, effective confidence, angular spread
 - seven synthetic phantom families with geometry-derived ground-truth masks
 - experimental P86 candidate-region analysis for four SR-PhC-microCT volumes
-- 300-dpi experimental Figure 9 generator
-- manuscript-number verification script
+- 300-dpi experimental visualization generator
+- reference-result verification utilities
 
 ## Experimental P86 workflow
 
@@ -36,12 +35,12 @@ The multiscale tensor itself is evaluated from the normalized volume using its o
 
 Place these four NRRDs in one directory:
 
-- A: `Cropped volume_2-3low.nrrd`
-- B: `Cropped volume_3_310l.nrrd`
-- C: `Cropped volume_1_1L(1).nrrd`
-- D: `Cropped volume_2_1L.nrrd`
+- A: `experimental_volume_A.nrrd`
+- B: `experimental_volume_B.nrrd`
+- C: `experimental_volume_C.nrrd`
+- D: `experimental_volume_D.nrrd`
 
-## Reproduce Table 3
+## Reproduce experimental summary metrics
 
 ```bash
 python run_experimental_abcd.py --data-dir /path/to/nrrds --out outputs/experimental
@@ -56,16 +55,16 @@ Expected rounded values:
 | C | 12.96 | 0.159 | 0.913 | 11.71 | 27.5 | 13.4 | 59.1 |
 | D | 13.30 | 0.179 | 0.933 | 10.55 | 38.3 | 19.9 | 41.8 |
 
-## Verify Table 3 exactly at manuscript rounding
+## Verify experimental summary metrics
 
 ```bash
-python verify_manuscript_results.py --data-dir /path/to/nrrds
+python verify_reference_results.py --data-dir /path/to/nrrds
 ```
 
-## Reproduce experimental Figure 9
+## Reproduce experimental visualization
 
 ```bash
-python make_figure9_volume_a.py "/path/to/nrrds/Cropped volume_2-3low.nrrd" --out Figure9_Volume_A_P86_300dpi.png
+python make_experimental_volume_a.py "/path/to/nrrds/Cropped volume_2-3low.nrrd" --out experimental_Volume_A_P86_300dpi.png
 ```
 
 ## Run all synthetic validation
