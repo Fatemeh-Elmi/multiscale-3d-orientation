@@ -1,0 +1,64 @@
+FINAL PACKAGE VALIDATION REPORT
+===============================
+
+Package purpose
+---------------
+Standalone Python implementation matching the final manuscript workflow.
+The package does not import or depend on the older dermal-morphometry code.
+Synthetic validation and experimental P86 candidate selection are separated.
+
+Environment used for this self-check
+------------------------------------
+Python 3.13.5
+NumPy 2.3.5
+SciPy 1.17.0
+Matplotlib 3.10.8
+
+Checks performed
+----------------
+1. Python byte-compilation of all package modules: PASS.
+2. Fresh experimental analysis on all four supplied NRRD volumes: PASS.
+3. Manuscript Table 3 reproduction at stated rounding: PASS for A-D.
+4. Figure 9 generation from Volume A at 300 dpi: PASS.
+5. Fresh baseline synthetic validation: completed and key manuscript values reproduced.
+6. Fresh extended synthetic validation: completed and key manuscript values reproduced.
+7. Search for dependencies on the old dermal-morphometry/low-resolution workflow: none found.
+
+Fresh experimental manuscript values
+-------------------------------------
+A: candidate 12.83%, q_eff 0.162, stability 0.915, spread 11.80 deg,
+   best-supported S0/S1/S2 = 27.4/22.3/50.4%.
+B: candidate 12.29%, q_eff 0.143, stability 0.923, spread 11.27 deg,
+   best-supported S0/S1/S2 = 38.5/18.6/42.9%.
+C: candidate 12.96%, q_eff 0.159, stability 0.913, spread 11.71 deg,
+   best-supported S0/S1/S2 = 27.5/13.4/59.1%.
+D: candidate 13.30%, q_eff 0.179, stability 0.933, spread 10.55 deg,
+   best-supported S0/S1/S2 = 38.3/19.9/41.8%.
+
+Fresh baseline synthetic checks
+-------------------------------
+Straight weighted-fusion median error: 0.491881 deg (~0.492).
+Straight equal-weight fusion median error: 0.588251 deg (~0.588).
+Straight S1 median error: 0.382401 deg (~0.382).
+Straight retrospective oracle median error: 0.223363 deg (~0.223).
+Weighted fusion better than equal weighting: 89.0625% (~89.1%).
+Pooled confidence-error Spearman rho: -0.265853 (~-0.266).
+Helix spread-error Spearman rho: 0.993007 (~0.993).
+Orthogonal crossing confidence: 0.576816 away vs 0.149134 intersection.
+Orthogonal crossing spread: 0.854770 deg away vs 1.583593 deg intersection.
+
+Fresh extended synthetic checks
+-------------------------------
+Extended volumes: 64 total.
+Tortuosity spread-error Spearman rho: 0.985294 (~0.985).
+Bundle spread-error Spearman rho: 0.738095 (~0.738).
+At bundle RMS dispersion ~14.142 deg, S1 is the best individual scale.
+
+Important interpretation
+------------------------
+P86 is used only to define image-derived candidate regions in experimental data.
+It is not used for synthetic phantom evaluation, which uses geometry-derived
+ground-truth masks. The P86 mask is not a chemically specific collagen
+segmentation. Experimental data do not provide independent voxel-wise 3-D
+orientation ground truth, so the experimental analysis is a transfer/reliability
+demonstration rather than an absolute-accuracy validation.
