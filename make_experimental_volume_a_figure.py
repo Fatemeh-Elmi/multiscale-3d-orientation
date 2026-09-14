@@ -1,4 +1,4 @@
-"""Generate Figure 9 (Volume A) from the final P86 workflow at 300 dpi."""
+"""Generate experimental Volume A visualization from the P86 workflow at 300 dpi."""
 from __future__ import annotations
 from pathlib import Path
 import argparse
