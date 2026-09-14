@@ -103,3 +103,13 @@ Key extended results include:
 ## Important interpretation
 
 The P86 mask is an image-derived fibrous candidate selection, not a chemically specific collagen segmentation. The experimental volumes have no independent voxel-wise 3-D orientation ground truth; therefore they demonstrate transfer/reliability behavior, not absolute orientation accuracy.
+## Citation
+
+This code accompanies the manuscript:
+
+**A Validated Confidence-Weighted Multiscale Framework for 3D Orientation and Reliability Analysis of Fibrous Microstructures in Volumetric Images**
+
+**Fatemeh Elmi**
+
+Department of Marine Chemistry, Faculty of Marine & Environmental Sciences, University of Mazandaran, Babolsar, Iran
+
