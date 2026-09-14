@@ -1,4 +1,4 @@
-"""Reproduce Table 3 for experimental Volumes A-D using the final P86 workflow."""
+"""Reproduce the experimental summary metrics for Volumes A–D using the P86 workflow."""
 from __future__ import annotations
 from pathlib import Path
 import argparse
@@ -15,10 +15,10 @@ from experimental_p86 import (
 from multiscale_orientation_core import MultiscaleOrientationConfig
 
 DEFAULT_FILES = {
-    "A": "Cropped volume_2-3low.nrrd",
-    "B": "Cropped volume_3_310l.nrrd",
-    "C": "Cropped volume_1_1L(1).nrrd",
-    "D": "Cropped volume_2_1L.nrrd",
+    "A": "Cropped volume_A.nrrd",
+    "B": "Cropped volume_B.nrrd",
+    "C": "Cropped volume_C.nrrd",
+    "D": "Cropped volume_D.nrrd",
 }
 
 
