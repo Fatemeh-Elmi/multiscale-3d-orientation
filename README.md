@@ -1,115 +1,101 @@
-# Final Python code for the multiscale 3-D orientation manuscript
+# Multiscale 3D Fiber Orientation and Reliability Analysis
 
-This repository provides a clean, standalone implementation of the multiscale 3D orientation and reliability analysis framework
+Reproducible Python source accompanying the manuscript by Fatemeh Elmi.
 
-## What is implemented
+## Implemented computation
 
-- 3-D gradient structure tensor with three fixed scale pairs:
-  - S0 = (sigma_g, sigma_t) = (0.75, 1.5) vox
-  - S1 = (1.25, 3.0) vox
-  - S2 = (2.0, 5.0) vox
-- local axial orientation = eigenvector of the smallest tensor eigenvalue
-- line-shape confidence + robust P5-P95 structural-strength normalization
-- confidence-weighted dyadic fusion
-- cross-scale stability, effective confidence, angular spread
-- seven synthetic phantom families with geometry-derived ground-truth masks
-- experimental P86 candidate-region analysis for four SR-PhC-microCT volumes
-- 300-dpi experimental visualization generator
-- reference-result verification utilities
+- Grayscale 3D gradient structure tensors at three **fixed** `(sigma_g, sigma_t)` pairs in voxels:
+  S0 `(0.75, 1.5)`, S1 `(1.25, 3.0)`, S2 `(2.0, 5.0)`.
+- Local axial orientation from the smallest structure-tensor eigenvector.
+- Scale-specific structural confidence from tensor line-likeness and P5-P95-normalized transverse strength.
+- Sign-invariant, confidence-weighted dyadic fusion.
+- Effective confidence, cross-scale stability, weighted angular spread and the **best-supported** scale (highest image-derived confidence, **not** necessarily the lowest-error scale).
+- Seven synthetic phantom families (205 volumes/challenges), with geometry-derived ground truth wherever a unique fiber axis exists.
+- Experimental P86 candidate-region analysis, without collagen-specific segmentation.
 
-## Experimental P86 workflow
+The estimator and synthetic image generation have **not** been changed for this statistical update. Synthetic images are generated/degraded and clipped to `[0,1]`; unlike experimental input, they are **not** subjected to P1-P99 image normalization.
 
-Only the experimental data use the P86 candidate mask. The mask is generated from the normalized volume as follows:
+## Setup
 
-1. clip raw intensity at P1/P99 and rescale to [0,1]
-2. Gaussian smooth with sigma = 1 voxel **for mask generation only**
-3. threshold at the 86th percentile of the smoothed normalized volume
-4. remove 3-D connected components < 120 voxels
-5. 3-D morphological closing with a radius-1 spherical element
-6. fill holes
-7. calculate/report orientation and reliability only within this candidate mask
-
-The multiscale tensor itself is evaluated from the normalized volume using its own sigma_g/sigma_t values; the extra sigma=1 smoothing is not added to the orientation estimator.
-
-## Expected experimental filenames
-
-Place these four NRRDs in one directory:
-
-- A: `experimental_volume_A.nrrd`
-- B: `experimental_volume_B.nrrd`
-- C: `experimental_volume_C.nrrd`
-- D: `experimental_volume_D.nrrd`
-
-## Reproduce experimental summary metrics
+Requires Python, NumPy, SciPy, and Matplotlib (see `requirements.txt`).
 
 ```bash
-python run_experimental_abcd.py --data-dir /path/to/nrrds --out outputs/experimental
+python -m pip install -r requirements.txt
+python test_statistical_reanalysis.py
 ```
 
-Expected rounded values:
-
-| Volume | Candidate % | Median q_eff | Stability | Spread (deg) | Best-supported S0 % | S1 % | S2 % |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| A | 12.83 | 0.162 | 0.915 | 11.80 | 27.4 | 22.3 | 50.4 |
-| B | 12.29 | 0.143 | 0.923 | 11.27 | 38.5 | 18.6 | 42.9 |
-| C | 12.96 | 0.159 | 0.913 | 11.71 | 27.5 | 13.4 | 59.1 |
-| D | 13.30 | 0.179 | 0.933 | 10.55 | 38.3 | 19.9 | 41.8 |
-
-## Verify experimental summary metrics
-
-```bash
-python verify_reference_results.py --data-dir /path/to/nrrds
-```
-
-## Reproduce experimental visualization
-
-```bash
-python make_experimental_volume_a.py "/path/to/nrrds/Cropped volume_2-3low.nrrd" --out experimental_Volume_A_P86_300dpi.png
-```
-
-## Run all synthetic validation
+## Reproduce all synthetic results and the updated statistical analysis
 
 ```bash
 python run_all_synthetic_validation.py --out outputs/synthetic
 ```
 
-The synthetic design contains 205 volumes/challenges in total:
+The output contains (a verified result snapshot is also shipped in `reference_outputs/`):
 
-- 128 straight-fiber noise/blur volumes
-- 12 analytic helical volumes
-- 1 primary orthogonal crossing challenge
-- 32 radius-sweep volumes
-- 8 crossing-angle volumes
-- 16 planar-tortuosity volumes
-- 8 bundle-dispersion volumes
+- `baseline/synthetic_validation_per_volume.csv` (128 straight + 12 helical volumes)
+- `extended/extended_validation_per_volume.csv` (64 additional volumes)
+- `condition_level_means.csv` (mean of per-volume median metrics within geometric conditions)
+- `condition_level_correlations.csv` (two-sided **exact** Spearman permutation tests)
+- `condition_level_statistics.json` and `combined_summary.json`
+- summary CSVs and illustrative figures from both validation programs
 
-Baseline RNG seed: `20260903`; extended morphology RNG seed: `20260904`.
+The separate primary orthogonal crossing challenge contributes **one** further experiment, bringing the full total to **205**.
 
-Key expected baseline results include:
+### Correct straight-fiber results (128 volumes)
 
-- weighted fusion straight median = ~0.492 deg
-- equal-weight fusion = ~0.588 deg
-- S1 = ~0.382 deg
-- retrospective oracle = ~0.223 deg
-- weighted fusion better than equal weighting in 89.1% of straight volumes
-- pooled confidence/error Spearman rho = ~-0.266
-- helix spread/error Spearman rho = ~0.993
+| Estimator | Median per-volume axial error |
+|---|---:|
+| S0 | 1.364° |
+| S1 | 0.382° |
+| **S2** | **0.223°** |
+| Equal-weight dyadic fusion | 0.588° |
+| Confidence-weighted dyadic fusion | 0.492° |
 
-Key extended results include:
+S2 is the lowest-error individual scale in **113/128** straight-fiber volumes; weighted fusion improves on equal weighting in **114/128 (89.1%)**. A ground-truth-selected per-volume oracle also has median 0.223°, but oracle and S2 are distinct definitions and do not necessarily select the same scale in each volume. Fusion **does not** universally improve accuracy over S2.
 
-- tortuosity spread/error Spearman rho = ~0.985
-- bundle spread/error Spearman rho = ~0.738
+### Condition-level Spearman reanalysis
 
-## Important interpretation
+Noise realizations are averaged **within** each geometric setting before condition-level correlation. Exact two-sided permutation tests are used (not the asymptotic p-values from correlations across replicate volumes).
 
-The P86 mask is an image-derived fibrous candidate selection, not a chemically specific collagen segmentation. The experimental volumes have no independent voxel-wise 3-D orientation ground truth; therefore they demonstrate transfer/reliability behavior, not absolute orientation accuracy.
-## Citation
+| Comparison | Distinct geometries / conditions | Spearman rho | Exact two-sided p |
+|---|---:|---:|---:|
+| Helix: spread vs fusion error | 6 | 1.000 | 0.002778 |
+| Helix: curvature vs spread | 6 | 0.543 | 0.297222 |
+| Tortuosity: spread vs fusion error | **7** | 1.000 | 0.000397 |
+| Five-fiber bundle: spread vs fusion error | 4 | 1.000 | **0.083333** |
 
-This code accompanies the manuscript:
+There are **8 prescribed** wavelength/amplitude settings for tortuosity, but the two `A=0` settings share the **same straight geometry**, so they are pooled for inference. The 8-setting descriptive result (rho 1.000, p 0.0000496) is also exported. The four bundle conditions yield a perfect rank order but **do not** meet the p<0.05 threshold under the exact test. These tests assess ranking across selected synthetic designs, not generalizable or voxel-wise predictive accuracy.
 
-**A Validated Confidence-Weighted Multiscale Framework for 3D Orientation and Reliability Analysis of Fibrous Microstructures in Volumetric Images**
+The code also preserves original **per-volume** correlations for descriptive comparison; use the **condition-level** fields above to report the statistical findings in the revised manuscript. The pooled, spatially correlated straight-fiber voxel analysis remains descriptive (Spearman rho about -0.266).
 
-**Fatemeh Elmi**
+## Experimental P86 workflow
 
-Department of Marine Chemistry, Faculty of Marine & Environmental Sciences, University of Mazandaran, Babolsar, Iran
+Experimental intensities are clipped at P1/P99 and rescaled to `[0,1]`. The candidate mask is made from a sigma=1-voxel-smoothed **copy** using the P86 threshold, connected-component removal (<120 voxels), radius-1 3D closing, and hole filling. The extra mask smoothing is **not** part of the estimator input; structure tensors operate on the normalized volume.
 
+Use the four previously acquired experimental NRRD volumes and supply their location:
+
+```bash
+python run_experimental_abcd.py --data-dir /path/to/nrrds --out outputs/experimental
+python verify_reference_results.py --data-dir /path/to/nrrds
+```
+
+`verify_reference_results.py` expects these actual filenames by default:
+
+- A: `Cropped volume_2-3low.nrrd`
+- B: `Cropped volume_3_310l.nrrd`
+- C: `Cropped volume_1_1L(1).nrrd`
+- D: `Cropped volume_2_1L.nrrd`
+
+Both experimental commands accept `--file-a`, `--file-b`, `--file-c`, and `--file-d` to override the defaults when your NRRDs have different filenames. The experimental runner exports `Table4_experimental_summary.csv` and `.json`. For Volume A visualization:
+
+```bash
+python make_experimental_volume_a_figure.py '/path/to/nrrds/Cropped volume_2-3low.nrrd' --out experimental_Volume_A_P86_300dpi.png
+```
+
+Experimental images are **not distributed** in this archive. The previously reported rounded experimental metrics are: A (12.83% candidate, q_eff 0.162, stability 0.915, spread 11.80°); B (12.29%, 0.143, 0.923, 11.27°); C (12.96%, 0.159, 0.913, 11.71°); D (13.30%, 0.179, 0.933, 10.55°). These are not independently revalidated without the NRRD data.
+
+## Interpretation and provenance
+
+The P86 mask identifies image-derived fibrous **candidate** voxels; it is not chemically specific collagen or fibrosis segmentation. Without independent 3D experimental ground truth, real data demonstrate application and sensitivity, not absolute orientation accuracy. The code and report were statistically revised without introducing or re-fitting any estimator parameters. See `STATISTICAL_METHODS.md` and `RELEASE_NOTES.md`.
+
+No license has been selected in this package; the repository owner must decide whether and under which terms to add one before reuse permissions are specified.
