@@ -5,6 +5,7 @@ import argparse
 import json
 
 from multiscale_orientation_core import MultiscaleOrientationConfig
+from condition_level_statistics import run_condition_analysis
 from synthetic_validation import SyntheticValidationConfig, run_synthetic_validation
 from synthetic_validation_extended import (
     ExtendedSyntheticValidationConfig,
@@ -30,6 +31,11 @@ def main() -> None:
         orientation_config=orientation_config,
     )
 
+    condition_means, condition_correlations = run_condition_analysis(
+        args.out / "baseline" / "synthetic_validation_per_volume.csv",
+        args.out / "extended" / "extended_validation_per_volume.csv",
+        args.out,
+    )
     total = (
         baseline["summary"]["n_total_accuracy_volumes"]
         + 1  # primary orthogonal crossing challenge
@@ -39,6 +45,13 @@ def main() -> None:
         "total_synthetic_volumes_or_challenges": int(total),
         "baseline": baseline["summary"],
         "extended": extended["summary"],
+        "condition_level_correlations": condition_correlations,
+        "statistical_design_note": (
+            "Replicates were averaged per geometry before Spearman correlations. "
+            "Two-sided permutation p-values are exact. Tortuosity A=0 geometries "
+            "were collapsed from 8 prescribed settings to 7 distinct geometries "
+            "for the primary inference."
+        ),
     }
     (args.out / "combined_summary.json").write_text(json.dumps(combined, indent=2), encoding="utf-8")
     print(json.dumps(combined, indent=2))

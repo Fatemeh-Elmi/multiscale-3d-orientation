@@ -15,10 +15,10 @@ from experimental_p86 import (
 from multiscale_orientation_core import MultiscaleOrientationConfig
 
 DEFAULT_FILES = {
-    "A": "Cropped volume_A.nrrd",
-    "B": "Cropped volume_B.nrrd",
-    "C": "Cropped volume_C.nrrd",
-    "D": "Cropped volume_D.nrrd",
+    "A": "Cropped volume_2-3low.nrrd",
+    "B": "Cropped volume_3_310l.nrrd",
+    "C": "Cropped volume_1_1L(1).nrrd",
+    "D": "Cropped volume_2_1L.nrrd",
 }
 
 
@@ -27,6 +27,9 @@ def main() -> None:
     ap.add_argument("--data-dir", type=Path, required=True, help="Directory containing the four NRRD files")
     ap.add_argument("--out", type=Path, default=Path("outputs/experimental"))
     ap.add_argument("--save-npz", action="store_true", help="Save compact per-volume masked analysis arrays")
+    for label, filename in DEFAULT_FILES.items():
+        ap.add_argument(f"--file-{label.lower()}", default=filename,
+                        help=f"Volume {label} filename relative to --data-dir (default: {filename})")
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
 
@@ -35,7 +38,8 @@ def main() -> None:
     save_config_json(args.out / "analysis_config.json", ocfg, ecfg)
 
     rows: list[dict[str, object]] = []
-    for volume, filename in DEFAULT_FILES.items():
+    for volume, default_filename in DEFAULT_FILES.items():
+        filename = getattr(args, f"file_{volume.lower()}")
         path = args.data_dir / filename
         if not path.exists():
             raise FileNotFoundError(path)
@@ -61,13 +65,13 @@ def main() -> None:
         gc.collect()
 
     fields = list(rows[0].keys())
-    with (args.out / "Table3_experimental_summary.csv").open("w", newline="", encoding="utf-8") as f:
+    with (args.out / "Table4_experimental_summary.csv").open("w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
         w.writerows(rows)
-    (args.out / "Table3_experimental_summary.json").write_text(json.dumps(rows, indent=2), encoding="utf-8")
+    (args.out / "Table4_experimental_summary.json").write_text(json.dumps(rows, indent=2), encoding="utf-8")
 
-    print("\nTable 3 values (rounded as in manuscript):")
+    print("\nTable 4 values (rounded as in manuscript):")
     print("Volume  Candidate%  qeff   Stability  Spread(deg)  S0%   S1%   S2%")
     for r in rows:
         print(

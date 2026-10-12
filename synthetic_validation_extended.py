@@ -31,6 +31,7 @@ from scipy import ndimage as ndi
 from scipy.spatial import cKDTree
 from scipy.stats import spearmanr
 
+from condition_level_statistics import analyze_extended_rows, exact_spearman
 from multiscale_orientation_core import (
     MultiscaleOrientationConfig,
     _fuse_axial_directions,
@@ -397,7 +398,19 @@ def _plot_tortuosity(summary: list[dict[str, Any]], out_path: Path) -> None:
 
     spread = np.asarray([r["median_angular_spread_deg_mean"] for r in summary])
     error = np.asarray([r["weighted_multiscale_median_error_deg_mean"] for r in summary])
-    rho, p = spearmanr(spread, error)
+    # Seven distinct geometric cases for significance; the two A=0 settings
+    # represent the same straight geometry despite different wavelengths.
+    a0 = [r for r in summary if float(r["amplitude_vox"]) == 0.0]
+    nonzero = [r for r in summary if float(r["amplitude_vox"]) != 0.0]
+    distinct = nonzero + [{
+        "median_angular_spread_deg_mean": float(np.mean([r["median_angular_spread_deg_mean"] for r in a0])),
+        "weighted_multiscale_median_error_deg_mean": float(np.mean([r["weighted_multiscale_median_error_deg_mean"] for r in a0])),
+    }]
+    exact = exact_spearman(
+        [r["median_angular_spread_deg_mean"] for r in distinct],
+        [r["weighted_multiscale_median_error_deg_mean"] for r in distinct],
+    )
+    rho, p = exact["rho"], exact["p_exact_two_sided"]
     axes[1].scatter(spread, error, s=35)
     axes[1].set_xlabel("Median cross-scale angular spread (deg)")
     axes[1].set_ylabel("Median weighted-fusion error (deg)")
@@ -563,6 +576,8 @@ def run_extended_synthetic_validation(
     bundle_spread = np.asarray([r["median_angular_spread_deg"] for r in bundle_rows], dtype=float)
     bundle_error = np.asarray([r["weighted_multiscale_median_error_deg"] for r in bundle_rows], dtype=float)
     rho_bundle, p_bundle = spearmanr(bundle_spread, bundle_error)
+    _, extended_stats = analyze_extended_rows(tort_rows, bundle_rows)
+    tort_8_stats, tort_7_stats, bundle_condition_stats = extended_stats
 
     # Best individual scale per tested condition using aggregated median errors.
     def best_scale_from_summary(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -588,6 +603,12 @@ def run_extended_synthetic_validation(
         "tortuosity_spread_vs_weighted_error_spearman_p": float(p_tort),
         "bundle_spread_vs_weighted_error_spearman_rho": float(rho_bundle),
         "bundle_spread_vs_weighted_error_spearman_p": float(p_bundle),
+        "tortuosity_condition_level_spread_error_8_settings_rho": tort_8_stats["condition_rho"],
+        "tortuosity_condition_level_spread_error_8_settings_p_exact": tort_8_stats["condition_p_exact_two_sided"],
+        "tortuosity_condition_level_spread_error_7_distinct_rho": tort_7_stats["condition_rho"],
+        "tortuosity_condition_level_spread_error_7_distinct_p_exact": tort_7_stats["condition_p_exact_two_sided"],
+        "bundle_condition_level_spread_error_rho": bundle_condition_stats["condition_rho"],
+        "bundle_condition_level_spread_error_p_exact": bundle_condition_stats["condition_p_exact_two_sided"],
         "radius_best_scales_by_condition": radius_best,
         "tortuosity_best_scales_by_condition": tort_best,
         "bundle_best_scales_by_condition": bundle_best,

@@ -1,64 +1,42 @@
-FINAL PACKAGE VALIDATION REPORT
-===============================
+SOURCE CODE REVISION 1.0.1 — VALIDATION STATUS
+=================================================
 
-Package purpose
----------------
-Standalone Python implementation matching the final manuscript workflow.
-The package does not import or depend on the older dermal-morphometry code.
-Synthetic validation and experimental P86 candidate selection are separated.
+This is a correction to the supplied 1.0.0 release. The multiscale estimator,
+phantom generation, and experimental candidate-region estimator are unchanged.
 
-Environment used for this self-check
-------------------------------------
-Python 3.13.5
-NumPy 2.3.5
-SciPy 1.17.0
-Matplotlib 3.10.8
+Original published/reproduced straight-fiber volume-level results:
+ S0 = 1.364 deg median
+ S1 = 0.382 deg median
+ S2 = 0.223 deg median (lowest overall single-scale median)
+ Confidence-weighted fusion = 0.492 deg
+ Equal-weight fusion = 0.588 deg
+ S2 best individual scale in 113 of 128 straight-fiber volumes
+ Weighted better than equal-weight fusion in 114/128 volumes (89.1%)
+ Oracle per-volume hindsight minimum = 0.223 deg median
 
-Checks performed
-----------------
-1. Python byte-compilation of all package modules: PASS.
-2. Fresh experimental analysis on all four supplied NRRD volumes: PASS.
-3. Manuscript Table 3 reproduction at stated rounding: PASS for A-D.
-4. Figure 9 generation from Volume A at 300 dpi: PASS.
-5. Fresh baseline synthetic validation: completed and key manuscript values reproduced.
-6. Fresh extended synthetic validation: completed and key manuscript values reproduced.
-7. Search for dependencies on the old dermal-morphometry/low-resolution workflow: none found.
+Updated *condition-level* exact Spearman permutation statistics:
+ Helix spread versus fusion error: rho=1.000, n=6, p=0.00277778
+ Helix curvature versus spread: rho=0.542857, n=6, p=0.29722222
+ Tortuosity spread versus fusion error: rho=1.000, n=7 geometries, p=0.00039683
+ Bundle spread versus fusion error: rho=1.000, n=4, p=0.08333333
 
-Fresh experimental manuscript values
--------------------------------------
-A: candidate 12.83%, q_eff 0.162, stability 0.915, spread 11.80 deg,
-   best-supported S0/S1/S2 = 27.4/22.3/50.4%.
-B: candidate 12.29%, q_eff 0.143, stability 0.923, spread 11.27 deg,
-   best-supported S0/S1/S2 = 38.5/18.6/42.9%.
-C: candidate 12.96%, q_eff 0.159, stability 0.913, spread 11.71 deg,
-   best-supported S0/S1/S2 = 27.5/13.4/59.1%.
-D: candidate 13.30%, q_eff 0.179, stability 0.933, spread 10.55 deg,
-   best-supported S0/S1/S2 = 38.3/19.9/41.8%.
+The eight prescribed tortuosity wavelength/amplitude settings include
+TWO physically identical straight geometries (amplitude A=0) and are therefore
+collapsed to seven distinct geometric conditions for the inferential analysis.
+The eight-setting descriptive statistic is separately retained in code outputs.
 
-Fresh baseline synthetic checks
--------------------------------
-Straight weighted-fusion median error: 0.491881 deg (~0.492).
-Straight equal-weight fusion median error: 0.588251 deg (~0.588).
-Straight S1 median error: 0.382401 deg (~0.382).
-Straight retrospective oracle median error: 0.223363 deg (~0.223).
-Weighted fusion better than equal weighting: 89.0625% (~89.1%).
-Pooled confidence-error Spearman rho: -0.265853 (~-0.266).
-Helix spread-error Spearman rho: 0.993007 (~0.993).
-Orthogonal crossing confidence: 0.576816 away vs 0.149134 intersection.
-Orthogonal crossing spread: 0.854770 deg away vs 1.583593 deg intersection.
+Statistical tests should not be interpreted as evidence of generalization beyond
+the prescribed phantom designs. Real-data voxel-wise absolute accuracy cannot
+be determined without independent ground truth.
 
-Fresh extended synthetic checks
--------------------------------
-Extended volumes: 64 total.
-Tortuosity spread-error Spearman rho: 0.985294 (~0.985).
-Bundle spread-error Spearman rho: 0.738095 (~0.738).
-At bundle RMS dispersion ~14.142 deg, S1 is the best individual scale.
+Reference experimental values remain those reported in the 1.0.0 source
+archive; raw NRRD data are NOT bundled with this release. Verify against the
+original NRRDs using `python verify_reference_results.py --data-dir ...`.
 
-Important interpretation
-------------------------
-P86 is used only to define image-derived candidate regions in experimental data.
-It is not used for synthetic phantom evaluation, which uses geometry-derived
-ground-truth masks. The P86 mask is not a chemically specific collagen
-segmentation. Experimental data do not provide independent voxel-wise 3-D
-orientation ground truth, so the experimental analysis is a transfer/reliability
-demonstration rather than an absolute-accuracy validation.
+To regenerate synthetic checks, see README.md. The code revision does NOT
+introduce a direct benchmark against Fourier, ray casting or other independent
+orientation-estimation algorithms.
+
+THIS REVISION WAS RUN END-TO-END ON ALL 205 SYNTHETIC VOLUMES/CHALLENGES: PASS.
+The executable regression checks (four tests) also passed.
+All synthetic verification CSVs and combined JSON outputs are included under reference_outputs/.

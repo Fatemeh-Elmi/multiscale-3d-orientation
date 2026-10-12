@@ -30,6 +30,7 @@ from scipy import ndimage as ndi
 from scipy.spatial import cKDTree
 from scipy.stats import spearmanr
 
+from condition_level_statistics import analyze_helix_rows
 from multiscale_orientation_core import (
     MultiscaleOrientationConfig,
     _fuse_axial_directions,
@@ -389,11 +390,11 @@ def _plot_straight_accuracy(noise_agg: list[dict[str, Any]], blur_agg: list[dict
         axes[0].plot([r["noise_sigma"] for r in noise_agg], [r[metric] for r in noise_agg], marker="o", label=label)
         axes[1].plot([r["blur_sigma"] for r in blur_agg], [r[metric] for r in blur_agg], marker="o", label=label)
     axes[0].set_xlabel("Gaussian noise sigma")
-    axes[0].set_ylabel("Median axial orientation error (deg)")
+    axes[0].set_ylabel("Mean of per-volume median axial errors (deg)")
     axes[0].set_title("Straight fibers: noise sensitivity")
     axes[0].grid(alpha=0.25)
     axes[1].set_xlabel("Additional Gaussian blur sigma (voxels)")
-    axes[1].set_ylabel("Median axial orientation error (deg)")
+    axes[1].set_ylabel("Mean of per-volume median axial errors (deg)")
     axes[1].set_title("Straight fibers: blur sensitivity")
     axes[1].grid(alpha=0.25)
     axes[1].legend(fontsize=8, loc="best")
@@ -702,6 +703,9 @@ def run_synthetic_validation(
     ])
     best_single = np.min(singles, axis=0)
     middle_single = singles[min(1, singles.shape[0] - 1)]
+    coarse_single = singles[2]
+    fine_single = singles[0]
+    best_scale_by_volume = np.argmin(singles, axis=0)
     rho_conf, p_conf = spearmanr(straight_conf, straight_err)
 
     curved_spread = np.asarray([r["median_angular_spread_deg"] for r in curved_rows], float)
@@ -709,6 +713,8 @@ def run_synthetic_validation(
     curved_curvature = np.asarray([r["true_curvature_per_vox"] for r in curved_rows], float)
     rho_curv_spread, p_curv_spread = spearmanr(curved_curvature, curved_spread)
     rho_spread_error, p_spread_error = spearmanr(curved_spread, curved_error)
+    _, helix_stats = analyze_helix_rows(curved_rows)
+    helix_spread_stats, helix_curvature_stats = helix_stats
 
     summary = {
         "n_straight_volumes": len(straight_rows),
@@ -716,10 +722,14 @@ def run_synthetic_validation(
         "n_total_accuracy_volumes": len(all_rows),
         "straight_weighted_multiscale_median_error_across_volumes_deg": float(np.median(weighted)),
         "straight_equal_multiscale_median_error_across_volumes_deg": float(np.median(equal)),
+        "straight_fine_single_scale_s0_median_error_across_volumes_deg": float(np.median(fine_single)),
         "straight_middle_single_scale_median_error_across_volumes_deg": float(np.median(middle_single)),
+        "straight_coarse_single_scale_s2_median_error_across_volumes_deg": float(np.median(coarse_single)),
+        "straight_best_single_scale_counts_s0_s1_s2": [int(np.sum(best_scale_by_volume == i)) for i in range(3)],
         "straight_oracle_best_single_scale_median_error_across_volumes_deg": float(np.median(best_single)),
         "straight_weighted_better_than_equal_fraction_percent": float(np.mean(weighted < equal) * 100.0),
         "straight_weighted_better_than_middle_single_fraction_percent": float(np.mean(weighted < middle_single) * 100.0),
+        "straight_weighted_better_than_coarse_single_fraction_percent": float(np.mean(weighted < coarse_single) * 100.0),
         "straight_weighted_within_0p5deg_of_oracle_best_fraction_percent": float(np.mean(weighted <= best_single + 0.5) * 100.0),
         "straight_pooled_confidence_error_spearman_rho": float(rho_conf),
         "straight_pooled_confidence_error_spearman_p": float(p_conf),
@@ -727,6 +737,10 @@ def run_synthetic_validation(
         "curvature_vs_angular_spread_spearman_p": float(p_curv_spread),
         "curved_spread_vs_weighted_error_spearman_rho": float(rho_spread_error),
         "curved_spread_vs_weighted_error_spearman_p": float(p_spread_error),
+        "helix_condition_level_spread_vs_error_rho": helix_spread_stats["condition_rho"],
+        "helix_condition_level_spread_vs_error_p_exact": helix_spread_stats["condition_p_exact_two_sided"],
+        "helix_condition_level_curvature_vs_spread_rho": helix_curvature_stats["condition_rho"],
+        "helix_condition_level_curvature_vs_spread_p_exact": helix_curvature_stats["condition_p_exact_two_sided"],
         **crossing_summary,
     }
     # Confidence-stratified accuracy on straight fibers.
@@ -773,8 +787,14 @@ Confidence-weighted multiscale median error across straight test volumes:
   {summary['straight_weighted_multiscale_median_error_across_volumes_deg']:.4f} deg
 Equal-weight multiscale:
   {summary['straight_equal_multiscale_median_error_across_volumes_deg']:.4f} deg
-Middle single scale:
+S0 fine single scale:
+  {summary['straight_fine_single_scale_s0_median_error_across_volumes_deg']:.4f} deg
+S1 middle single scale:
   {summary['straight_middle_single_scale_median_error_across_volumes_deg']:.4f} deg
+S2 coarse single scale (lowest overall median straight-fiber error):
+  {summary['straight_coarse_single_scale_s2_median_error_across_volumes_deg']:.4f} deg
+Most accurate individual scales by volume, counts [S0,S1,S2]:
+  {summary['straight_best_single_scale_counts_s0_s1_s2']}
 Oracle best single scale (uses ground truth; not available in real data):
   {summary['straight_oracle_best_single_scale_median_error_across_volumes_deg']:.4f} deg
 Weighted fusion better than equal fusion in:
@@ -797,7 +817,11 @@ Scale dependence on curved fibers
 ---------------------------------
 Spearman rho(true curvature, cross-scale angular spread):
   {summary['curvature_vs_angular_spread_spearman_rho']:.4f}
-Spearman rho(angular spread, weighted-fusion error):
+Spearman rho(angular spread, weighted-fusion error), six helical conditions:
+  {summary['helix_condition_level_spread_vs_error_rho']:.4f}, exact two-sided p={summary['helix_condition_level_spread_vs_error_p_exact']:.6g}
+Spearman rho(curvature, spread), six helical conditions:
+  {summary['helix_condition_level_curvature_vs_spread_rho']:.4f}, exact two-sided p={summary['helix_condition_level_curvature_vs_spread_p_exact']:.6g}
+Per-volume descriptive spread-error Spearman rho (12 volumes):
   {summary['curved_spread_vs_weighted_error_spearman_rho']:.4f}
 
 Crossing ambiguity challenge

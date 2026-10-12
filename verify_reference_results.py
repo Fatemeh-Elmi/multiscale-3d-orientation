@@ -5,6 +5,7 @@ import argparse
 import math
 
 from experimental_p86 import analyze_experimental_nrrd
+from run_experimental_abcd import DEFAULT_FILES
 
 EXPECTED = {
     "A": (12.83, 0.162, 0.915, 11.80, 27.4, 22.3, 50.4),
@@ -12,12 +13,7 @@ EXPECTED = {
     "C": (12.96, 0.159, 0.913, 11.71, 27.5, 13.4, 59.1),
     "D": (13.30, 0.179, 0.933, 10.55, 38.3, 19.9, 41.8),
 }
-FILES = {
-    "A": "Cropped volume_2-3low.nrrd",
-    "B": "Cropped volume_3_310l.nrrd",
-    "C": "Cropped volume_1_1L(1).nrrd",
-    "D": "Cropped volume_2_1L.nrrd",
-}
+FILES = DEFAULT_FILES
 
 
 def close(actual, expected, decimals):
@@ -28,9 +24,13 @@ def close(actual, expected, decimals):
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--data-dir", type=Path, required=True)
+    for volume, filename in FILES.items():
+        ap.add_argument(f"--file-{volume.lower()}", default=filename,
+                        help=f"Filename for volume {volume} (default: {filename})")
     args = ap.parse_args()
     ok = True
-    for v, fn in FILES.items():
+    for v, default_filename in FILES.items():
+        fn = getattr(args, f"file_{v.lower()}")
         _, _, _, s, _ = analyze_experimental_nrrd(args.data_dir / fn)
         vals = (
             s["candidate_fraction_percent"],
